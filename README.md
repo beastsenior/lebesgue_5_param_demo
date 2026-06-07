@@ -4,6 +4,10 @@ Interactive visualization of the finite Reuleaux test-body method for deriving a
 
 The app places three diameter-one test bodies — the disk **D**, the Reuleaux triangle **R₃**, and the Reuleaux pentagon **R₅** — in a common convex hull. Move the bodies interactively to see how the sampled convex-hull area changes.
 
+## Live Demo
+
+[https://lebesgue5paramdemo-hhz2odqlf5cbfgn2qzo2gx.streamlit.app](https://lebesgue5paramdemo-hhz2odqlf5cbfgn2qzo2gx.streamlit.app)
+
 ## Quick Start
 
 ```bash
