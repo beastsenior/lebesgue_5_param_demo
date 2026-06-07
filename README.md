@@ -6,7 +6,7 @@ The app places three diameter-one test bodies — the disk **D**, the Reuleaux t
 
 ## Live Demo
 
-[https://lebesgue5paramdemo-hhz2odqlf5cbfgn2qzo2gx.streamlit.app](https://lebesgue5paramdemo-hhz2odqlf5cbfgn2qzo2gx.streamlit.app)
+[https://lebesgue-5param-demo.streamlit.app](https://lebesgue-5param-demo.streamlit.app)
 
 ## Quick Start
 
