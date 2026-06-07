@@ -1,14 +1,14 @@
 """
-Interactive visualization of the D/R3/R5 test-body method for deriving a
-lower bound in Lebesgue's universal covering problem.
+Interactive D/R3/R5 test-body demo for Lebesgue's universal covering
+problem.
 
-The app shows how three diameter-one test bodies—the disk D, the Reuleaux
-triangle R3, and the Reuleaux pentagon R5—are placed in a common convex hull.
-The displayed area is a floating-point sampled value used for visualization;
-the rigorous lower bound is established separately by interval verification.
+The app shows three diameter-one test bodies -- the disk D, the Reuleaux
+triangle R3, and the Reuleaux pentagon R5 -- placed in a common convex hull.
+It is intended as a geometric visualization of the finite Reuleaux test-body
+method.
 
 Run:
-    streamlit run lebesgue_5_param_demo.py
+    streamlit run lebesgue_5_param_demo_visual.py
 """
 
 from __future__ import annotations
@@ -25,53 +25,37 @@ import streamlit as st
 WIDTH = 1.0
 DISK_RADIUS = WIDTH / 2.0
 
-R3_ANGLE_OFFSET_DEG = 0.0
-R5_ANGLE_OFFSET_DEG = 0.0
+# Reference orientations for the visual model.  R3 is fixed; R5 is rotated by
+# psi5.  If the paper fixes a different reference convention, only these
+# constants need to be changed.
+R3_FIXED_ANGLE_DEG = 0.0
 BASE_VERTEX_ANGLE_DEG = 0.0
 
 SAMPLES_PER_REULEAUX_ARC = 100
 DISK_BOUNDARY_SAMPLES = 240
 
 DEFAULT_Z: Dict[str, float] = {
-    "psi3_deg": 0.0,
-    "d3": 0.0,
-    "alpha5_deg": 0.0,
+    "x3": 0.0,
+    "y3": 0.0,
+    "psi5_deg": 0.0,
     "x5": 0.0,
     "y5": 0.0,
 }
 
-# Representative parameter value for the 0.834 lower-bound example.
-# It is the center of a certified leaf box used to illustrate the method,
-# not a point whose sampled area is exactly 0.834.
-REPRESENTATIVE_0834_Z: Dict[str, float] = {
-    "psi3_deg": 105.625,
-    "d3": 0.0078125,
-    "alpha5_deg": 52.875,
-    "x5": 0.01671875,
-    "y5": 0.0075,
+DEMO_UI_RANGES = {
+    "x3": (-0.20, 0.20, 0.001, "%.9f"),
+    "y3": (-0.20, 0.20, 0.001, "%.9f"),
+    "psi5_deg": (0.0, 36.0, 0.05, "%.9f"),
+    "x5": (-0.20, 0.20, 0.001, "%.9f"),
+    "y5": (-0.20, 0.20, 0.001, "%.9f"),
 }
 
-NORMAL_UI_RANGES = {
-    "psi3_deg": (-180.0, 180.0, 0.5, "%.6f"),
-    "d3": (0.0, 0.8, 0.002, "%.9f"),
-    "alpha5_deg": (-180.0, 180.0, 0.5, "%.6f"),
-    "x5": (-0.8, 0.8, 0.002, "%.9f"),
-    "y5": (-0.8, 0.8, 0.002, "%.9f"),
-}
-
-PAPER_INFO = {
-    "title": "[Manuscript title to be inserted]",
-    "authors": "[Author names and affiliations to be inserted]",
-    "correspondence": "[Corresponding author contact to be inserted]",
-    "note": "This interactive page accompanies a manuscript on a D/R3/R5 test-body lower-bound method for Lebesgue's universal covering problem.",
-}
-
-REFERENCE_PLACEHOLDERS = [
-    "[1] H. Lebesgue, original formulation of the universal covering problem. Full bibliographic data to be inserted.",
-    "[2] Classical and modern surveys on Lebesgue's universal covering problem. Full bibliographic data to be inserted.",
-    "[3] Previous best lower-bound and upper-bound constructions for universal covers. Full bibliographic data to be inserted.",
-    "[4] Interval arithmetic / computer-assisted proof references relevant to the certificate. Full bibliographic data to be inserted.",
-]
+ABOUT_DEMO = (
+    "This interactive page illustrates a low-order finite Reuleaux test-body "
+    "configuration used to explain lower-bound constructions for Lebesgue's "
+    "universal covering problem. The displayed area is computed from the "
+    "sampled boundaries shown in the figure."
+)
 
 Point = Tuple[float, float]
 
@@ -255,6 +239,7 @@ def add_polygon_trace(
     fill: str = "toself",
     opacity: float = 0.35,
     line_width: float = 2.0,
+    visible: bool = True,
 ) -> None:
     closed = close_polygon(poly)
     fig.add_trace(
@@ -266,8 +251,10 @@ def add_polygon_trace(
             fill=fill,
             opacity=opacity,
             line=dict(width=line_width),
+            visible=True if visible else "legendonly",
         )
     )
+
 
 
 def build_figure(
@@ -276,19 +263,35 @@ def build_figure(
     r5_pts: np.ndarray,
     hull: np.ndarray,
     area_hull: float,
+    show_component_bodies: bool,
+    show_sample_points: bool,
 ) -> go.Figure:
     fig = go.Figure()
 
     add_polygon_trace(
         fig,
         hull,
-        f"conv(D ∪ R₃ ∪ R₅), sampled area ≈ {area_hull:.9f}",
+        f"Convex hull, sampled area ≈ {area_hull:.9f}",
         opacity=0.18,
         line_width=3.0,
     )
-    add_polygon_trace(fig, convex_hull(disk_pts), "D", opacity=0.35)
-    add_polygon_trace(fig, convex_hull(r3_pts), "R₃", opacity=0.35)
-    add_polygon_trace(fig, convex_hull(r5_pts), "R₅", opacity=0.35)
+    if show_component_bodies:
+        add_polygon_trace(fig, convex_hull(disk_pts), "Disk D", opacity=0.35)
+        add_polygon_trace(fig, convex_hull(r3_pts), "Reuleaux triangle R₃", opacity=0.35)
+        add_polygon_trace(fig, convex_hull(r5_pts), "Reuleaux pentagon R₅", opacity=0.35)
+
+    if show_sample_points:
+        for pts, name in [(disk_pts, "D samples"), (r3_pts, "R₃ samples"), (r5_pts, "R₅ samples")]:
+            fig.add_trace(
+                go.Scatter(
+                    x=pts[:, 0],
+                    y=pts[:, 1],
+                    mode="markers",
+                    name=name,
+                    marker=dict(size=2),
+                    visible=True,
+                )
+            )
 
     fig.update_layout(
         title="D, R₃ and R₅ test-body configuration",
@@ -304,66 +307,56 @@ def build_figure(
 
 
 def main() -> None:
-    st.set_page_config(page_title="Lebesgue lower-bound method demo", layout="wide")
+    st.set_page_config(page_title="Lebesgue D/R3/R5 test-body demo", layout="wide")
     init_param_state()
 
-    st.title("Interactive demonstration of the lower-bound method")
-    st.markdown("This demo illustrates how the D, R₃ and R₅ test bodies are used to obtain a lower bound for Lebesgue's universal covering problem.")
-
-    st.latex(
-        r"A(z)=\operatorname{area}\operatorname{conv}\bigl(D\cup R_3(z)\cup R_5(z)\bigr),"
-        r"\qquad z=(\psi_3,d_3,\alpha_5,x_5,y_5)."
+    st.title("Interactive D/R₃/R₅ test-body demo")
+    st.markdown(
+        "This demo visualizes how the disk D, the Reuleaux triangle R₃, and "
+        "the Reuleaux pentagon R₅ can be placed in a common convex hull. "
+        "Move the bodies to see how the sampled convex-hull area changes."
     )
 
     st.markdown(
-        "Here D is the radius-1/2 disk fixed at the origin. "
-        "The parameters (ψ₃, d₃) determine the normalized placement of R₃, "
-        "while (α₅, x₅, y₅) determine the placement of R₅. "
-        "The displayed area is a floating-point sampled value; the certified lower bound "
-        "is established separately by the interval certificate."
+        "The sampled area shown below is the area of the convex hull of the "
+        "three displayed test bodies."
     )
 
     with st.sidebar:
-        st.header("Configurations")
-        col_a, col_b = st.columns(2)
-        with col_a:
-            if st.button("Reset: z = 0", use_container_width=True):
-                set_param_state(DEFAULT_Z)
-                st.rerun()
-        with col_b:
-            if st.button("0.834", use_container_width=True):
-                set_param_state(REPRESENTATIVE_0834_Z)
-                st.rerun()
+        st.header("Configuration")
+        if st.button("Reset", use_container_width=True):
+            set_param_state(DEFAULT_Z)
+            st.rerun()
 
         st.header("Parameters")
-        ranges = NORMAL_UI_RANGES
+        ranges = DEMO_UI_RANGES
 
-        st.subheader("R₃")
-        psi3_deg = slider_with_exact_input("psi3_deg", "ψ₃: center direction, degrees", ranges)
-        d3 = slider_with_exact_input("d3", "d₃: center distance", ranges)
+        st.subheader("Reuleaux triangle R₃")
+        x3 = slider_with_exact_input("x3", "x₃: horizontal shift", ranges)
+        y3 = slider_with_exact_input("y3", "y₃: vertical shift", ranges)
 
-        st.subheader("R₅")
-        alpha5_deg = slider_with_exact_input("alpha5_deg", "α₅: orientation, degrees", ranges)
-        x5 = slider_with_exact_input("x5", "x₅: center x-coordinate", ranges)
-        y5 = slider_with_exact_input("y5", "y₅: center y-coordinate", ranges)
+        st.subheader("Reuleaux pentagon R₅")
+        psi5_deg = slider_with_exact_input("psi5_deg", "ψ₅: rotation, degrees", ranges)
+        x5 = slider_with_exact_input("x5", "x₅: horizontal shift", ranges)
+        y5 = slider_with_exact_input("y5", "y₅: vertical shift", ranges)
 
-    psi3 = math.radians(psi3_deg)
-    alpha5 = math.radians(alpha5_deg + R5_ANGLE_OFFSET_DEG)
-    theta3 = math.radians(psi3_deg + R3_ANGLE_OFFSET_DEG)
+        st.header("Display")
+        show_component_bodies = st.checkbox("Show component bodies", value=True)
+        show_sample_points = st.checkbox("Show sampled boundary points", value=False)
 
-    c3 = (d3 * math.cos(psi3), d3 * math.sin(psi3))
-    c5 = (x5, y5)
+    psi5 = math.radians(psi5_deg)
+    theta3 = math.radians(R3_FIXED_ANGLE_DEG)
 
     disk_pts = sample_disk()
     r3_pts = sample_reuleaux_odd_ngon(
         3,
         width=WIDTH,
-        pose=Pose(center=c3, angle_rad=theta3),
+        pose=Pose(center=(x3, y3), angle_rad=theta3),
     )
     r5_pts = sample_reuleaux_odd_ngon(
         5,
         width=WIDTH,
-        pose=Pose(center=c5, angle_rad=alpha5),
+        pose=Pose(center=(x5, y5), angle_rad=psi5),
     )
 
     all_pts = np.vstack([disk_pts, r3_pts, r5_pts])
@@ -373,42 +366,39 @@ def main() -> None:
     left, right = st.columns([3, 1])
 
     with left:
-        fig = build_figure(disk_pts, r3_pts, r5_pts, hull, area_hull)
-        st.plotly_chart(fig, width="stretch")
+        fig = build_figure(
+            disk_pts,
+            r3_pts,
+            r5_pts,
+            hull,
+            area_hull,
+            show_component_bodies=show_component_bodies,
+            show_sample_points=show_sample_points,
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
     with right:
-        st.subheader("Current parameters")
+        st.subheader("Current placement")
         st.code(
             "\n".join(
                 [
-                    f"psi3   = {psi3_deg:.9f} deg",
-                    f"d3     = {d3:.9f}",
-                    f"alpha5 = {alpha5_deg:.9f} deg",
-                    f"x5     = {x5:.9f}",
-                    f"y5     = {y5:.9f}",
+                    f"R3 shift x = {x3:.9f}",
+                    f"R3 shift y = {y3:.9f}",
+                    f"R5 rotation = {psi5_deg:.9f} deg",
+                    f"R5 shift x = {x5:.9f}",
+                    f"R5 shift y = {y5:.9f}",
                 ]
             ),
             language="text",
         )
 
         st.subheader("Sampled area")
-        st.metric("area conv(D ∪ R₃ ∪ R₅)", f"{area_hull:.9f}")
-        st.caption(
-            "This is the sampled area at the displayed parameter value. "
-            "It can be larger than 0.834 because 0.834 is the certified interval lower bound "
-            "for the corresponding leaf box after all safety margins are included, not the sampled area at this center point."
-        )
+        st.metric("area of convex hull", f"{area_hull:.9f}")
+        st.caption("This value is computed from the displayed sampled boundary points.")
 
     st.divider()
-    st.subheader("Manuscript information")
-    st.markdown(f"**Title.** {PAPER_INFO['title']}")
-    st.markdown(f"**Authors and affiliations.** {PAPER_INFO['authors']}")
-    st.markdown(f"**Correspondence.** {PAPER_INFO['correspondence']}")
-    st.markdown(PAPER_INFO["note"])
-
-    st.subheader("References")
-    for reference in REFERENCE_PLACEHOLDERS:
-        st.markdown(reference)
+    st.subheader("About this demo")
+    st.markdown(ABOUT_DEMO)
 
 
 if __name__ == "__main__":
