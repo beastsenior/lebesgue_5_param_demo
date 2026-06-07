@@ -54,7 +54,10 @@ ABOUT_DEMO = (
     "This interactive page illustrates a low-order finite Reuleaux test-body "
     "configuration used to explain lower-bound constructions for Lebesgue's "
     "universal covering problem. The displayed area is computed from the "
-    "sampled boundaries shown in the figure."
+    "sampled boundaries shown in the figure. "
+    "This demo accompanies the paper *An Exact Variational Hierarchy for Lebesgue's "
+    "Universal Covering Constant and a Certified 0.834 Lower Bound* "
+    "by Shuai Zeng."
 )
 
 Point = Tuple[float, float]
