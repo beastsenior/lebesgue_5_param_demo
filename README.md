@@ -4,6 +4,8 @@ Interactive visualization of the finite Reuleaux test-body method for deriving a
 
 The app places three diameter-one test bodies — the disk **D**, the Reuleaux triangle **R₃**, and the Reuleaux pentagon **R₅** — in a common convex hull. Move the bodies interactively to see how the sampled convex-hull area changes.
 
+This demo accompanies the paper *An Exact Variational Hierarchy for Lebesgue's Universal Covering Constant and a Certified 0.834 Lower Bound* by Shuai Zeng.
+
 ## Live Demo
 
 [https://lebesgue-5param-demo.streamlit.app](https://lebesgue-5param-demo.streamlit.app)
